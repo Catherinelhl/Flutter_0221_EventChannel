@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app/install_state_event_channel.dart';
 
 void main() => runApp(MyApp());
 
@@ -34,64 +35,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // 创建 EventChannel
-  static const stream =
-      const EventChannel("installStateEventChannel");
-
-  List<String> allInstalledAPPS = List();
-
-  StreamSubscription _listenInstallStateSubscription;
-
-  ///开始监听应用的安装状态
-  void _startListenAppInstallState() {
-    if (_listenInstallStateSubscription == null)
-      // 监听 EventChannel 流, 会触发 Native onListen回调
-      _listenInstallStateSubscription = stream.receiveBroadcastStream().listen(_updateAllInstalledApp,onError: _onError);
-  }
-
-  ///停止监听对应用安装过程的监听
-  void _stopListenAppInstallState() {
-    _listenInstallStateSubscription?.cancel();
-    _listenInstallStateSubscription = null;
-    setState(() => allInstalledAPPS.clear());
-  }
-
-  ///更新当前检测到的所有已经安装的APP
-  void _updateAllInstalledApp(dynamic package) {
-    print("${package is Map<bool,String>}--------$package");
-    if(package != null ){
-      String singlePackage =package  ;
-      if(singlePackage.startsWith("-")){
-        singlePackage =singlePackage.replaceAll("-", "");
-        print('Flutter:${singlePackage};被卸载了');
-
-      }else{
-        print('Flutter:${singlePackage};被安装了');
-
-      }
-
-      setState(() =>  allInstalledAPPS.add(singlePackage));
-      print('------length:${allInstalledAPPS.length}');
-
-    }
-  }
-
-  void _onError(Object object){
-    print('监听异常${object.toString()}');
-
-  }
+  AppInstallStateEventChannel appInstallStateEventChannel = new AppInstallStateEventChannel();
   @override
   void dispose() {
     super.dispose();
-    _listenInstallStateSubscription?.cancel();
-    _listenInstallStateSubscription = null;
+    appInstallStateEventChannel?.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("EventChannel 事件监听"),
+        title: Text("EventChannel 事件监听--"),
       ),
       body: Container(
         margin: EdgeInsets.only(left: 10, top: 10),
@@ -103,18 +58,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   RaisedButton(
                     child: Text('Start EventChannel',
                         style: TextStyle(fontSize: 12)),
-                    onPressed: _startListenAppInstallState,
+                    onPressed: appInstallStateEventChannel?.startListenAppInstallState,
                   ),
                   Padding(
                       padding: EdgeInsets.only(left: 10),
                       child: RaisedButton(
                         child: Text('Cancel EventChannel',
                             style: TextStyle(fontSize: 12)),
-                        onPressed: _stopListenAppInstallState,
+                        onPressed: appInstallStateEventChannel?.stopListenAppInstallState,
                       )),
                   Padding(
                     padding: EdgeInsets.only(left: 10),
-                    child: Text("${allInstalledAPPS.length}"),
+                    child: Text("${appInstallStateEventChannel?.allInstalledAPPS?.length}"),
                   )
                 ],
               )
